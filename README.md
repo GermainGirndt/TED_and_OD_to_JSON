@@ -9,7 +9,7 @@ A Python Asynchronous Web Scraping tool for TED and Olhar Digital
 * **Clone Repo**
 
 ```
-git clone https://github.com/GermainPereira/TED_and_OD_to_JSON.git
+git clone https://github.com/GermainPereira/TED_and_OD_to_JSON.git .
 ```
 
 - **Create a new venv and enter it**
