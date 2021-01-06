@@ -2,7 +2,9 @@ import json
 from requests_html import AsyncHTMLSession
 from urllib.request import urlretrieve
 import os
+import time
 
+DIRNAME = "data"
 async_session = AsyncHTMLSession()
 
 def get_ted_json(urls):
@@ -45,15 +47,18 @@ def get_ted_json(urls):
             all_data.append(data)
             print(data)
             print("-------------------------------------------------")
-        except Exception:
+        except Exception as e:
+            print(e)
             pass
     
+    os.makedirs(DIRNAME, exist_ok=True)
     for data in all_data:
         try:
             file_name = data["title"]
-            with open(f'{file_name}.json', 'w') as outfile:
+            with open(f'{DIRNAME}/{file_name}.json', 'w') as outfile:
                 json.dump(data, outfile)
-        except Exception:
+        except Exception as e:
+            print(e)
             pass
     
 
@@ -61,7 +66,7 @@ def get_olhar_digital_json(urls):
 
     def get_text(result):
         transcript = ""
-        text_div = result.html.find('div .mat-txt', first=True)
+        text_div = result.html.find('div.inner-content', first=True)
 
         ps = text_div.find('p')
         for p in ps:
@@ -71,10 +76,10 @@ def get_olhar_digital_json(urls):
     async_functions = []
     
     for url in urls:
-        async def get_ted_url( url=url):
+        async def get_olhar_digital_url( url=url):
             response = await async_session.get(url)
             return response
-        async_functions.append(get_ted_url)
+        async_functions.append(get_olhar_digital_url)
 
     results = async_session.run(*async_functions)
 
@@ -83,20 +88,24 @@ def get_olhar_digital_json(urls):
         try:
             print(result)
             data = {}
-            data["title"] = result.html.find('.mat-tit', first=True).text
+            data["title"] = result.html.find('h1')[1].text
             data["type"] = "article"
             data["url"] = result.html.url
             data["body"] = get_text(result)
             all_data.append(data)
-        except Exception:
+            print(data)
+        except Exception as e:
+            print(e)
             pass
     
+    os.makedirs(DIRNAME, exist_ok=True)
     for data in all_data:
         try:
             file_name = data["title"]
-            with open(f'{file_name}.json', 'w') as outfile:
+            with open(f'{DIRNAME}/{file_name}.json', 'w') as outfile:
                 json.dump(data, outfile)
-        except Exception:
+        except Exception as e:
+            print(e)
             pass
 
 if __name__ == "__main__":
