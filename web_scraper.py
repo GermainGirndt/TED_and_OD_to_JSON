@@ -34,21 +34,28 @@ def get_ted_json(urls):
 
     all_data = []
     for result in results:
-        print(result)
-        details_response, transcript_response = result
-        data = {}
-        data["title"] = details_response.html.find('title', first=True).text
-        data["type"] = "video"
-        data["url"] = details_response.html.url
-        data["body"] = get_transcript(transcript_response)
-        all_data.append(data)
-        print(data)
-        print("-------------------------------------------------")
+        try:
+            print(result)
+            details_response, transcript_response = result
+            data = {}
+            data["title"] = details_response.html.find('title', first=True).text
+            data["type"] = "video"
+            data["url"] = details_response.html.url
+            data["body"] = get_transcript(transcript_response)
+            all_data.append(data)
+            print(data)
+            print("-------------------------------------------------")
+        except Exception:
+            pass
     
     for data in all_data:
-        file_name = data["title"]
-        with open(f'{file_name}.json', 'w') as outfile:
-            json.dump(data, outfile)
+        try:
+            file_name = data["title"]
+            with open(f'{file_name}.json', 'w') as outfile:
+                json.dump(data, outfile)
+        except Exception:
+            pass
+    
 
 def get_olhar_digital_json(urls):
 
@@ -73,18 +80,24 @@ def get_olhar_digital_json(urls):
 
     all_data = []
     for result in results:
-        print(result)
-        data = {}
-        data["title"] = result.html.find('.mat-tit', first=True).text
-        data["type"] = "article"
-        data["url"] = result.html.url
-        data["body"] = get_text(result)
-        all_data.append(data)
+        try:
+            print(result)
+            data = {}
+            data["title"] = result.html.find('.mat-tit', first=True).text
+            data["type"] = "article"
+            data["url"] = result.html.url
+            data["body"] = get_text(result)
+            all_data.append(data)
+        except Exception:
+            pass
     
     for data in all_data:
-        file_name = data["title"]
-        with open(f'{file_name}.json', 'w') as outfile:
-            json.dump(data, outfile)
+        try:
+            file_name = data["title"]
+            with open(f'{file_name}.json', 'w') as outfile:
+                json.dump(data, outfile)
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     ted_urls = [
@@ -149,7 +162,6 @@ if __name__ == "__main__":
     ]
 
     
-
 
     get_ted_json(ted_urls)
     get_olhar_digital_json(olhar_digital_urls)
