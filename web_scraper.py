@@ -3,68 +3,155 @@ from requests_html import AsyncHTMLSession
 from urllib.request import urlretrieve
 import os
 import time
+from abc import ABC, abstractmethod
 
-DIRNAME = "data"
-async_session = AsyncHTMLSession()
+class RequestSenderStrategy(ABC):
 
-def get_ted_json(urls):
+    DIRNAME = "data"
+    async_session = AsyncHTMLSession()
+
+    @abstractmethod
+    def getData(self, urls) -> str:
+        pass
+
+    @abstractmethod
+    def mount_assync_functions(self):
+        pass
+
+
+    @abstractmethod
+    def call_assync_functions(self):
+        pass
+
+    @abstractmethod
+    def create_data_object(self):
+        pass
 
     
+    @abstractmethod
+    def save_data(self):
+        pass
+        
+
+class RequestTedStrategy(RequestSenderStrategy):
 
     TRANSCRIPT_ROUTE = '/transcript'
     LANGUAGE_QUERY = '?language=pt-br'
+    async_functions = []
+    all_data = []
 
-    def get_transcript(result):
+    def getData(self, urls):
+        self.urls = urls
+        self.mount_assync_functions()
+        self.call_assync_functions()
+        self.create_data_object()
+        self.save_data()
+
+
+    def mount_assync_functions(self):
+        for url in self.urls:
+            async def get_ted_url( url=url):
+                details = url +self.LANGUAGE_QUERY
+                transcript = url + self.TRANSCRIPT_ROUTE + self.LANGUAGE_QUERY 
+                details_response = await self.async_session.get(details)
+                transcript_response = await self.async_session.get(transcript)
+                return details_response, transcript_response
+            self.async_functions.append(get_ted_url)
+    
+    def call_assync_functions(self):
+        self.results = self.async_session.run(*self.async_functions)
+    
+    def create_data_object(self):    
+        for result in self.results:
+            try:
+                print(result)
+                details_response, transcript_response = result
+                data = {}
+                data["title"] = details_response.html.find('title', first=True).text
+                data["type"] = "video"
+                data["url"] = details_response.html.url
+                data["body"] = self.get_transcript(transcript_response)
+                self.all_data.append(data)
+                print(data)
+                print("-------------------------------------------------")
+            except Exception as e:
+                print(e)
+                pass
+      
+    def save_data(self):    
+        os.makedirs(self.DIRNAME, exist_ok=True)
+        for data in self.all_data:
+            try:
+                file_name = data["title"]
+                with open(f'{self.DIRNAME}/{file_name}.json', 'w') as outfile:
+                    json.dump(data, outfile)
+            except Exception as e:
+                print(e)
+                pass
+
+    def get_transcript(self, result):
         transcript = ""
         ps = result.html.find('p')
         for p in ps:
             transcript += p.text.replace("\n", "").replace("\t", "")
         return transcript
 
+
+class RequestOlharDigitalStrategy(RequestSenderStrategy):
+
     async_functions = []
-    
-    for url in urls:
-        async def get_ted_url( url=url):
-            details = url + LANGUAGE_QUERY
-            transcript = url + TRANSCRIPT_ROUTE + LANGUAGE_QUERY 
-            details_response = await async_session.get(details)
-            transcript_response = await async_session.get(transcript)
-            return details_response, transcript_response
-        async_functions.append(get_ted_url)
-
-    results = async_session.run(*async_functions)
-
     all_data = []
-    for result in results:
-        try:
-            print(result)
-            details_response, transcript_response = result
-            data = {}
-            data["title"] = details_response.html.find('title', first=True).text
-            data["type"] = "video"
-            data["url"] = details_response.html.url
-            data["body"] = get_transcript(transcript_response)
-            all_data.append(data)
-            print(data)
-            print("-------------------------------------------------")
-        except Exception as e:
-            print(e)
-            pass
-    
-    os.makedirs(DIRNAME, exist_ok=True)
-    for data in all_data:
-        try:
-            file_name = data["title"]
-            with open(f'{DIRNAME}/{file_name}.json', 'w') as outfile:
-                json.dump(data, outfile)
-        except Exception as e:
-            print(e)
-            pass
-    
 
-def get_olhar_digital_json(urls):
+    def getData(self, urls):
 
-    def get_text(result):
+        self.urls = urls
+        self.mount_assync_functions()
+        self.call_assync_functions()
+        self.create_data_object()
+        self.save_data()
+
+
+    def mount_assync_functions(self):
+
+        for url in self.urls:
+            async def get_olhar_digital_url( url=url):
+                response = await self.async_session.get(url)
+                return response
+            self.async_functions.append(get_olhar_digital_url)
+
+
+    def call_assync_functions(self):
+        self.results = self.async_session.run(*self.async_functions)
+
+
+    def create_data_object(self):
+        for result in self.results:
+            try:
+                print(result)
+                data = {}
+                data["title"] = result.html.find('h1')[1].text
+                data["type"] = "article"
+                data["url"] = result.html.url
+                data["body"] = self.get_text(result)
+                self.all_data.append(data)
+                print(data)
+            except Exception as e:
+                print(e)
+                pass
+
+
+    def save_data(self):
+        os.makedirs(self.DIRNAME, exist_ok=True)
+        for data in self.all_data:
+            try:
+                file_name = data["title"]
+                with open(f'{self.DIRNAME}/{file_name}.json', 'w') as outfile:
+                    json.dump(data, outfile)
+            except Exception as e:
+                print(e)
+                pass
+
+    def get_text(self, result):
         transcript = ""
         text_div = result.html.find('div.inner-content', first=True)
 
@@ -72,41 +159,8 @@ def get_olhar_digital_json(urls):
         for p in ps:
             transcript += p.text.replace("\n", "").replace("\t", "")
         return transcript
-
-    async_functions = []
     
-    for url in urls:
-        async def get_olhar_digital_url( url=url):
-            response = await async_session.get(url)
-            return response
-        async_functions.append(get_olhar_digital_url)
-
-    results = async_session.run(*async_functions)
-
-    all_data = []
-    for result in results:
-        try:
-            print(result)
-            data = {}
-            data["title"] = result.html.find('h1')[1].text
-            data["type"] = "article"
-            data["url"] = result.html.url
-            data["body"] = get_text(result)
-            all_data.append(data)
-            print(data)
-        except Exception as e:
-            print(e)
-            pass
     
-    os.makedirs(DIRNAME, exist_ok=True)
-    for data in all_data:
-        try:
-            file_name = data["title"]
-            with open(f'{DIRNAME}/{file_name}.json', 'w') as outfile:
-                json.dump(data, outfile)
-        except Exception as e:
-            print(e)
-            pass
 
 if __name__ == "__main__":
     ted_urls = [
@@ -170,7 +224,7 @@ if __name__ == "__main__":
         'https://olhardigital.com.br/noticia/implante-conectado-diretamente-ao-cerebro-devolve-visao-a-cegos/96573',
     ]
 
-    
+    RequestTedStrategy().getData(ted_urls)
 
-    get_ted_json(ted_urls)
-    get_olhar_digital_json(olhar_digital_urls)
+    RequestOlharDigitalStrategy().getData(olhar_digital_urls)
+
