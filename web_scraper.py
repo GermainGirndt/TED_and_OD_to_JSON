@@ -27,7 +27,6 @@ class RequestSenderStrategy(ABC):
     def create_data_object(self):
         pass
 
-    
     @abstractmethod
     def save_data(self):
         pass
@@ -64,7 +63,6 @@ class RequestTedStrategy(RequestSenderStrategy):
     def create_data_object(self):    
         for result in self.results:
             try:
-                print(result)
                 details_response, transcript_response = result
                 data = {}
                 data["title"] = details_response.html.find('title', first=True).text
@@ -73,6 +71,7 @@ class RequestTedStrategy(RequestSenderStrategy):
                 data["body"] = self.get_transcript(transcript_response)
                 self.all_data.append(data)
                 print(data)
+                print('TED')
                 print("-------------------------------------------------")
             except Exception as e:
                 print(e)
@@ -103,7 +102,6 @@ class RequestOlharDigitalStrategy(RequestSenderStrategy):
     all_data = []
 
     def getData(self, urls):
-
         self.urls = urls
         self.mount_assync_functions()
         self.call_assync_functions()
@@ -112,7 +110,6 @@ class RequestOlharDigitalStrategy(RequestSenderStrategy):
 
 
     def mount_assync_functions(self):
-
         for url in self.urls:
             async def get_olhar_digital_url( url=url):
                 response = await self.async_session.get(url)
@@ -127,7 +124,6 @@ class RequestOlharDigitalStrategy(RequestSenderStrategy):
     def create_data_object(self):
         for result in self.results:
             try:
-                print(result)
                 data = {}
                 data["title"] = result.html.find('h1')[1].text
                 data["type"] = "article"
@@ -135,6 +131,8 @@ class RequestOlharDigitalStrategy(RequestSenderStrategy):
                 data["body"] = self.get_text(result)
                 self.all_data.append(data)
                 print(data)
+                print('Olhar digital')
+                print("-------------------------------------------------")
             except Exception as e:
                 print(e)
                 pass
@@ -227,4 +225,3 @@ if __name__ == "__main__":
     RequestTedStrategy().getData(ted_urls)
 
     RequestOlharDigitalStrategy().getData(olhar_digital_urls)
-
